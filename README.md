@@ -1,6 +1,6 @@
-# 🇪🇬 Crowdfunding Web App
+# Rafiq-Fund Web App
 
-A web platform for launching fundraising campaigns in Egypt.
+A web platform for launching fundraising campaigns.
 
 ## 🚀 Features
 
@@ -20,8 +20,8 @@ A web platform for launching fundraising campaigns in Egypt.
 ## ⚙️ Installation
 
 ```bash
-git clone https://github.com/Crowd-Funding-A/Crowd-Funding-Backend.git
-cd Crowd-Funding-Backend
+git clone https://github.com/Rafiq-Fund/Rafiq-Backend.git
+cd Rafiq-Backend
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
