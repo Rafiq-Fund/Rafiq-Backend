@@ -15,6 +15,10 @@ class User(AbstractUser):
     bio = models.TextField(blank=True)
     address = models.CharField(max_length=100, blank=True)
     birth_date = models.DateField(null=True, blank=True)
+    
+    
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
 
     @property
     def full_name(self):
