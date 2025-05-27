@@ -2,15 +2,26 @@ from account.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
+from rest_framework.exceptions import AuthenticationFailed
 
 class LoginSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
+     def validate(self, attrs):
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        user = authenticate(email=email, password=password)
+
+        if user is None:
+            raise AuthenticationFailed("Invalid email or password.")
+
+        if not user.verified:
+            raise AuthenticationFailed("Account is not activated. Please check your email.")
+
         data = super().validate(attrs)
-        if not self.user.verified:
-            raise serializers.ValidationError("Account Please check your email.")
         return data
-    @classmethod
-    def get_token(cls, user):
+     @classmethod
+     def get_token(cls, user):
         token = super().get_token(user)
         token["full_name"] = user.full_name
         token["profile_picture"] = user.profile_picture.url if user.profile_picture else None
