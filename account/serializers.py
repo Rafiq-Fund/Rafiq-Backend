@@ -3,12 +3,12 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+class LoginSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
 
         if not self.user.verified:
-            raise serializers.ValidationError("Account is not activated. Please check your email.")
+            raise serializers.ValidationError("Account Please check your email.")
         return data
     @classmethod
     def get_token(cls, user):
@@ -55,3 +55,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "profile_picture", "bio", "address", "birth_date"
         ]
         read_only_fields = ["id", "username", "email"]
+
