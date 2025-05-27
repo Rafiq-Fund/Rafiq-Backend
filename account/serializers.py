@@ -4,19 +4,22 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        if not self.user.verified:
+            raise serializers.ValidationError("Account is not activated. Please check your email.")
+        return data
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-
-        token["username"] = user.username
-        token["email"] = user.email
         token["full_name"] = user.full_name
         token["profile_picture"] = user.profile_picture.url if user.profile_picture else None
         token["verified"] = user.verified
         token["bio"] = user.bio
-        token["address"] = user.address
         token["birth_date"] = user.birth_date.isoformat() if user.birth_date else None
-
+        token["username"] = user.username
+        token["email"] = user.email
         return token
 
 
@@ -39,6 +42,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop("password2")
         password = validated_data.pop("password")
         user = User(**validated_data)
+        user.verified = False 
         user.set_password(password)
         user.save()
         return user
