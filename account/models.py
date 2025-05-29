@@ -1,3 +1,4 @@
+from datetime import date
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -14,7 +15,8 @@ class User(AbstractUser):
     verified = models.BooleanField(default=False)
     bio = models.TextField(blank=True)
     address = models.CharField(max_length=100, blank=True)
-    birth_date = models.DateField(null=True, blank=True)
+    birth_date = models.DateField(default=date(2000, 1, 1))
+
     
     
     USERNAME_FIELD = 'email'
