@@ -1,4 +1,4 @@
-from django.conf import settings
+from django.conf import settings 
 import jwt
 from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
 from rest_framework_simplejwt.views import TokenObtainPairView

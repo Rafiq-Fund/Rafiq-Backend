@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import AuthenticationFailed
+from django.core.validators import RegexValidator
 
 class LoginSerializer(TokenObtainPairSerializer):
      def validate(self, attrs):
@@ -38,10 +39,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         write_only=True, required=True, validators=[validate_password]
     )
     password2 = serializers.CharField(write_only=True, required=True)
+    phone = serializers.CharField(
+        required=True,
+        validators=[
+            RegexValidator(
+                regex=r'^01[0125][0-9]{8}$',
+                message="Phone number must be a valid Egyptian mobile number."
+            )
+        ]
+    )
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "username", "email", "password", "password2", "address", "birth_date"]
+        fields = ["first_name", "last_name", "username", "email", "password", "password2", "address", "birth_date", "phone", "profile_picture"]
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password2"]:

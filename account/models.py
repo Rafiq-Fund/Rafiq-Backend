@@ -1,9 +1,13 @@
 from datetime import date
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 
 # Create your models here.
 
+PHONE_REGEX = RegexValidator(
+    regex=r'^01[0125][0-9]{8}$',
+)
 
 class User(AbstractUser):
     username = models.CharField(max_length=150, unique=True)
@@ -16,6 +20,8 @@ class User(AbstractUser):
     bio = models.TextField(blank=True)
     address = models.CharField(max_length=100, blank=True)
     birth_date = models.DateField(default=date(2000, 1, 1))
+    phone = models.CharField(validators=[PHONE_REGEX], max_length=11, blank=True, null=True)
+
 
     
     
