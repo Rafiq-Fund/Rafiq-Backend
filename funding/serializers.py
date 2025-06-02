@@ -52,25 +52,21 @@ class PostSerializer(serializers.ModelSerializer):
     images = PostImageSerializer(many=True, read_only=True)
     donations = DonationSerializer(many=True, read_only=True)
     current_amount = serializers.SerializerMethodField(read_only=True)
-    funding_percentage = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Post
         fields = [
             'id', 'title', 'content', 'author', 'created_at', 
             'target_amount', 'deadline', 'comments', 'images',
-            'donations', 'current_amount', 'funding_percentage'
+            'donations', 'current_amount'
         ]
         read_only_fields = [
-            'id', 'created_at', 'current_amount', 
-            'funding_percentage', 'comments', 'images', 'donations'
+            'id', 'created_at', 'current_amount', 'comments', 'images', 'donations'
         ]
 
     def get_current_amount(self, obj):
         return obj.current_amount
 
-    def get_funding_percentage(self, obj):
-        return obj.funding_percentage
 
     def validate(self, attrs):
         """
