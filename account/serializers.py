@@ -69,3 +69,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "username", "email"]
 
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "profile_picture", "bio", "address", "birth_date", "phone"]
+        read_only_fields = ["email"]
+    
+    def validate_phone(self, value):
+        if not value:
+            return value
+        phone_validator = RegexValidator(
+            regex=r'^01[0125][0-9]{8}$',
+            message="Phone number must be a valid Egyptian mobile number."
+        )
+        phone_validator(value)
+        return value
+

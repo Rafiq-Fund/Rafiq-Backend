@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from account.models import User
 from account.utiles import send_activation_email, send_password_reset_email
-from account.serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer
+from account.serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer, UserUpdateSerializer
 from django.contrib.auth import get_user_model
 
 class RegisterView(CreateAPIView):
@@ -101,3 +101,11 @@ class ResetPasswordView(APIView):
             return Response({"detail": "Invalid token."}, status=400)
         except User.DoesNotExist:
             return Response({"detail": "User does not exist."}, status=404)
+        
+
+class UserUpdateView(RetrieveUpdateAPIView):
+    serializer_class = UserUpdateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
