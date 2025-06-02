@@ -24,13 +24,6 @@ class LoginSerializer(TokenObtainPairSerializer):
      @classmethod
      def get_token(cls, user):
         token = super().get_token(user)
-        token["full_name"] = user.full_name
-        token["profile_picture"] = user.profile_picture.url if user.profile_picture else None
-        token["verified"] = user.verified
-        token["bio"] = user.bio
-        token["birth_date"] = user.birth_date.isoformat() if user.birth_date else None
-        token["username"] = user.username
-        token["email"] = user.email
         return token
 
 

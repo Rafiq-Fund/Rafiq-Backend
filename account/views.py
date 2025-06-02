@@ -67,10 +67,6 @@ class ActivateAccountView(APIView):
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     
-
-
-User = get_user_model()
-
 class RequestPasswordResetView(APIView):
     def post(self, request):
         email = request.data.get("email")
