@@ -48,8 +48,9 @@ class PostSerializer(serializers.ModelSerializer):
     current_amount = serializers.SerializerMethodField(read_only=True)
     funding_percentage = serializers.SerializerMethodField(read_only=True)
     average_rating = serializers.SerializerMethodField(read_only=True)
-    category = serializers.StringRelatedField()
-    tags = serializers.StringRelatedField(many=True)
+
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
+    tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
 
     class Meta:
         model = Post
@@ -67,17 +68,39 @@ class PostSerializer(serializers.ModelSerializer):
     def get_current_amount(self, obj):
         return obj.current_amount
 
-
     def get_average_rating(self, obj):
         return obj.average_rating
 
+    def get_funding_percentage(self, obj):
+        if obj.target_amount:
+            return round((obj.current_amount / obj.target_amount) * 100, 2)
+        return 0
+
     def validate(self, attrs):
-        if 'end_time' in attrs and attrs['end_time'] < timezone.now():
+        now = timezone.now()
+        end_time = attrs.get('end_time')
+        start_time = attrs.get('start_time')
+
+        if end_time and end_time < now:
             raise serializers.ValidationError({'end_time': 'End time must be in the future'})
-        if 'start_time' in attrs and 'end_time' in attrs and attrs['start_time'] > attrs['end_time']:
+
+        if start_time and end_time and start_time > end_time:
             raise serializers.ValidationError({'start_time': 'Start time must be before end time'})
+
         return attrs
 
     def create(self, validated_data):
+        tags_data = validated_data.pop('tags', [])
         validated_data['author'] = self.context['request'].user
-        return super().create(validated_data)
+        post = Post.objects.create(**validated_data)
+        post.tags.set(tags_data)
+        return post
+
+    def update(self, instance, validated_data):
+        tags_data = validated_data.pop('tags', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if tags_data is not None:
+            instance.tags.set(tags_data)
+        return instance
