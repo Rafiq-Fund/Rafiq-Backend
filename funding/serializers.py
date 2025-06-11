@@ -1,6 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Post, PostImage, Donation, Comment
+from .models import Post, PostImage, Donation, Comment, Category, Tag
 
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
@@ -12,17 +12,14 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at']
 
     def get_replies(self, obj):
-        """Recursive serialization for comment replies with depth limit"""
-        max_depth = 3  # Prevent infinite recursion
+        max_depth = 3
         return self.get_nested_replies(obj, max_depth)
-    
+
     def get_nested_replies(self, obj, depth):
         if depth <= 0:
             return []
         queryset = obj.replies.all()
-        serializer = CommentSerializer(queryset, many=True, context={
-            'depth': depth - 1
-        })
+        serializer = CommentSerializer(queryset, many=True, context={'depth': depth - 1})
         return serializer.data
 
 class PostImageSerializer(serializers.ModelSerializer):
@@ -33,18 +30,15 @@ class PostImageSerializer(serializers.ModelSerializer):
 
 class DonationSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
-    
+
     class Meta:
         model = Donation
-        fields = ['id', 'user', 'amount', 'created_at', 'is_anonymous', 'message']
+        fields = ['id', 'user', 'amount', 'created_at', 'message']
         read_only_fields = ['id', 'created_at']
-    
-    def to_representation(self, instance):
-        """Hide user info for anonymous donations"""
-        data = super().to_representation(instance)
-        if instance.is_anonymous:
-            data['user'] = 'Anonymous'
-        return data
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(read_only=True)
@@ -53,17 +47,21 @@ class PostSerializer(serializers.ModelSerializer):
     donations = DonationSerializer(many=True, read_only=True)
     current_amount = serializers.SerializerMethodField(read_only=True)
     funding_percentage = serializers.SerializerMethodField(read_only=True)
+    average_rating = serializers.SerializerMethodField(read_only=True)
+    category = serializers.StringRelatedField()
+    tags = serializers.StringRelatedField(many=True)
 
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'content', 'author', 'created_at', 
-            'target_amount', 'deadline', 'comments', 'images',
-            'donations', 'current_amount', 'funding_percentage'
+            'id', 'title', 'content', 'author', 'category', 'tags', 'created_at',
+            'target_amount', 'start_time', 'end_time', 'is_canceled',
+            'comments', 'images', 'donations',
+            'current_amount', 'funding_percentage', 'average_rating'
         ]
         read_only_fields = [
-            'id', 'created_at', 'current_amount', 
-            'funding_percentage', 'comments', 'images', 'donations'
+            'id', 'created_at', 'current_amount', 'funding_percentage',
+            'comments', 'images', 'donations', 'average_rating', 'author'
         ]
 
     def get_current_amount(self, obj):
@@ -72,28 +70,16 @@ class PostSerializer(serializers.ModelSerializer):
     def get_funding_percentage(self, obj):
         return obj.funding_percentage
 
+    def get_average_rating(self, obj):
+        return obj.average_rating
+
     def validate(self, attrs):
-        """
-        Custom validation for deadline and target amount
-        Note: Using 'attrs' as parameter name to match base class signature
-        """
-        # Validate deadline if provided
-        if 'deadline' in attrs:
-            if attrs['deadline'] < timezone.now():
-                raise serializers.ValidationError({
-                    'deadline': 'Deadline must be in the future'
-                })
-        
-        # Validate target amount if provided
-        if 'target_amount' in attrs:
-            if attrs['target_amount'] < 1:
-                raise serializers.ValidationError({
-                    'target_amount': 'Target amount must be at least 1.00'
-                })
-        
+        if 'end_time' in attrs and attrs['end_time'] < timezone.now():
+            raise serializers.ValidationError({'end_time': 'End time must be in the future'})
+        if 'start_time' in attrs and 'end_time' in attrs and attrs['start_time'] > attrs['end_time']:
+            raise serializers.ValidationError({'start_time': 'Start time must be before end time'})
         return attrs
 
     def create(self, validated_data):
-        """Automatically set author to current user"""
         validated_data['author'] = self.context['request'].user
         return super().create(validated_data)

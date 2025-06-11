@@ -7,4 +7,3 @@ router.register(r'post-images', PostImageViewSet)
 router.register(r'comments', CommentViewSet)
 
 urlpatterns = router.urls
-
