@@ -67,8 +67,6 @@ class PostSerializer(serializers.ModelSerializer):
     def get_current_amount(self, obj):
         return obj.current_amount
 
-    def get_funding_percentage(self, obj):
-        return obj.funding_percentage
 
     def get_average_rating(self, obj):
         return obj.average_rating

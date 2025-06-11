@@ -49,10 +49,15 @@ class Post(models.Model):
         return round(avg, 2) if avg else 0.00
     
 class PostImage(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='images')
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='images'
+    )
     image = models.ImageField(upload_to='post_images/')
+
     def __str__(self):
-        return self.post.title
+        return f"Image for {self.post.title}"
 
 
 class Comment(models.Model):
@@ -63,7 +68,8 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username}"
+        return f"Comment by {self.user.username} on {self.post.title}"
+
 
 class Donation(models.Model):
     user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,related_name='donations')
