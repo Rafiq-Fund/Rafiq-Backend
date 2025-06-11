@@ -1,8 +1,9 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Post, PostImage, Comment
-from .serializers import CommentSerializer, PostImageSerializer, PostSerializer
-
+from .models import Post, PostImage, Comment , Donation
+from .serializers import (
+    CommentSerializer, PostImageSerializer, PostSerializer, DonationSerializer
+)
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -34,3 +35,17 @@ class CommentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+
+class DonationViewSet(viewsets.ModelViewSet):
+    serializer_class = DonationSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Donation.objects.all()  
+
+    def get_queryset(self):
+        post_id = self.request.query_params.get('post_id')
+        if post_id:
+            return Donation.objects.filter(post_id=post_id)
+        return Donation.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save
