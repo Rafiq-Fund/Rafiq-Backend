@@ -1,8 +1,10 @@
+from django.forms import ValidationError
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Post, PostImage, Comment , Donation
+from .models import Category, Post, PostImage, Comment, Donation, Tag, Rating
 from .serializers import (
-    CommentSerializer, PostImageSerializer, PostSerializer, DonationSerializer
+    CategorySerializer, CommentSerializer, PostImageSerializer,
+    PostSerializer, DonationSerializer, TagSerializer, RatingSerializer
 )
 
 
@@ -22,24 +24,35 @@ class PostImageViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all().order_by('created_at')
+    queryset = Comment.objects.all()  
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         post_id = self.request.query_params.get('post_id')
         if post_id:
-            return Comment.objects.filter(post_id=post_id, parent__isnull=True)
-        return Comment.objects.none()
+            return Comment.objects.filter(post_id=post_id, parent__isnull=True).order_by('created_at')
+        return Comment.objects.all().order_by('created_at')  
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        post_id = self.request.data.get('post')
+        if not post_id:
+            raise ValidationError({"post": "This field is required."})
 
+        parent_id = self.request.data.get('parent')
+        parent = None
+        if parent_id:
+            try:
+                parent = Comment.objects.get(id=parent_id)
+            except Comment.DoesNotExist:
+                raise ValidationError({"parent": "Invalid parent comment ID."})
+
+        serializer.save(user=self.request.user, post_id=post_id, parent=parent)
 
 class DonationViewSet(viewsets.ModelViewSet):
     serializer_class = DonationSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Donation.objects.all()  
+    queryset = Donation.objects.all()
 
     def get_queryset(self):
         post_id = self.request.query_params.get('post_id')
@@ -48,4 +61,28 @@ class DonationViewSet(viewsets.ModelViewSet):
         return Donation.objects.all()
 
     def perform_create(self, serializer):
-        serializer.save
+        serializer.save(user=self.request.user)
+
+
+class RatingViewSet(viewsets.ModelViewSet):
+    serializer_class = RatingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        post_id = self.request.query_params.get('post_id')
+        if post_id:
+            return Rating.objects.filter(post_id=post_id)
+        return Rating.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
