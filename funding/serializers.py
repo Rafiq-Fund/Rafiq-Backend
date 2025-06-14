@@ -24,7 +24,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class PostImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostImage
-        fields = ['id', 'image']
+        fields = ['id', 'image','post']
         read_only_fields = ['id']
 
 class DonationSerializer(serializers.ModelSerializer):
@@ -74,15 +74,16 @@ class RatingSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(read_only=True)
+    images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=False)
+    image_urls = PostImageSerializer(source='images', many=True, read_only=True)  
     comments = serializers.SerializerMethodField(read_only=True)
-    images = PostImageSerializer(many=True, read_only=True)
-    donations = DonationSerializer(many=True, read_only=True)
+    donations = serializers.SerializerMethodField(read_only=True)
     current_amount = serializers.SerializerMethodField(read_only=True)
     funding_percentage = serializers.SerializerMethodField(read_only=True)
     average_rating = serializers.SerializerMethodField(read_only=True)
 
-    category = CategorySerializer(read_only=True)
-    tags = TagSerializer(many=True, read_only=True)
+    category = serializers.SerializerMethodField()
+    tags = serializers.SerializerMethodField()
 
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), write_only=True, source='category'
@@ -94,20 +95,29 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'content', 'author', 'category', 'category_id',
-            'tags', 'tag_ids', 'created_at', 'target_amount',
+            'id', 'title', 'content', 'author',
+            'category', 'category_id',
+            'tags', 'tag_ids',
+            'created_at', 'target_amount',
             'start_time', 'end_time', 'is_canceled',
-            'comments', 'images', 'donations',
-            'current_amount', 'funding_percentage', 'average_rating'
+            'images', 'image_urls',
+            'comments', 'donations',
+            'current_amount', 'funding_percentage', 'average_rating',
         ]
         read_only_fields = [
-            'id', 'created_at', 'current_amount', 'funding_percentage',
-            'comments', 'images', 'donations', 'average_rating', 'author', 'category', 'tags'
+            'id', 'author', 'created_at',
+            'category', 'tags',
+            'image_urls',
+            'comments', 'donations',
+            'current_amount', 'funding_percentage', 'average_rating',
         ]
 
     def get_comments(self, obj):
-        top_level_comments = obj.comments.filter(parent__isnull=True).order_by('created_at')
-        return CommentSerializer(top_level_comments, many=True).data
+        top_level = obj.comments.filter(parent__isnull=True).order_by('created_at')
+        return CommentSerializer(top_level, many=True).data
+
+    def get_donations(self, obj):
+        return DonationSerializer(obj.donations.all(), many=True).data
 
     def get_current_amount(self, obj):
         return obj.current_amount
@@ -120,10 +130,16 @@ class PostSerializer(serializers.ModelSerializer):
             return round((Decimal(obj.current_amount) / obj.target_amount) * 100, 2)
         return 0
 
+    def get_category(self, obj):
+        return {'id': obj.category.id, 'name': obj.category.name} if obj.category else None
+
+    def get_tags(self, obj):
+        return [{'id': tag.id, 'name': tag.name} for tag in obj.tags.all()]
+
     def validate(self, attrs):
         now = timezone.now()
-        end_time = attrs.get('end_time')
         start_time = attrs.get('start_time')
+        end_time = attrs.get('end_time')
 
         if end_time and end_time < now:
             raise serializers.ValidationError({'end_time': 'End time must be in the future'})
@@ -135,16 +151,27 @@ class PostSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         tags_data = validated_data.pop('tags', [])
+        images_data = validated_data.pop('images', [])
+
         validated_data['author'] = self.context['request'].user
+
         post = Post.objects.create(**validated_data)
         post.tags.set(tags_data)
+
+        for image_file in images_data:
+            PostImage.objects.create(post=post, image=image_file)
+
         return post
 
     def update(self, instance, validated_data):
         tags_data = validated_data.pop('tags', None)
+        validated_data.pop('images', None)
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+
         if tags_data is not None:
             instance.tags.set(tags_data)
+
         return instance

@@ -1,6 +1,7 @@
 from django.forms import ValidationError
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Category, Post, PostImage, Comment, Donation, Tag, Rating
 from .serializers import (
     CategorySerializer, CommentSerializer, PostImageSerializer,
@@ -12,6 +13,8 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -21,6 +24,7 @@ class PostImageViewSet(viewsets.ModelViewSet):
     queryset = PostImage.objects.all()
     serializer_class = PostImageSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
 
 class CommentViewSet(viewsets.ModelViewSet):
