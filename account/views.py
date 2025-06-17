@@ -45,7 +45,7 @@ class UserProfileView(RetrieveUpdateAPIView):
     
 
 class ActivateAccountView(APIView):
-    def get(self, request, token):
+    def post(self, request, token):
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             if payload.get("type") != "activation":
