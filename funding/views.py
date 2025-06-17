@@ -1,6 +1,6 @@
 from django.forms import ValidationError
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Category, Post, PostImage, Comment, Donation, Tag, Rating
@@ -14,7 +14,7 @@ from .serializers import (
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     parser_classes = [MultiPartParser, FormParser]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['author', 'tags']
@@ -63,14 +63,21 @@ class DonationViewSet(viewsets.ModelViewSet):
     queryset = Donation.objects.all()
 
     def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # For GET requests, return only donations where current user is the post author
+        if self.request.method == 'GET':
+            queryset = queryset.filter(post__author=self.request.user)
+        
+        # Still allow filtering by post_id if needed (for other methods or if explicitly requested)
         post_id = self.request.query_params.get('post_id')
         if post_id:
-            return Donation.objects.filter(post_id=post_id)
-        return Donation.objects.all()
+            queryset = queryset.filter(post_id=post_id)
+            
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
 
 class RatingViewSet(viewsets.ModelViewSet):
     serializer_class = RatingSerializer

@@ -29,15 +29,22 @@ class PostImageSerializer(serializers.ModelSerializer):
 
 class DonationSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
+    post_author = serializers.StringRelatedField(source='post.author', read_only=True)
+    post_title = serializers.StringRelatedField(source='post.title', read_only=True)
 
     class Meta:
         model = Donation
-        fields = ['id', 'user', 'amount', 'created_at', 'message']
+        fields = [
+            'id', 
+            'post', 
+            'post_title',
+            'post_author', 
+            'user', 
+            'amount', 
+            'created_at', 
+            'message'
+        ]
         read_only_fields = ['id', 'created_at']
-
-    def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
-        return super().create(validated_data)
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -74,6 +81,7 @@ class RatingSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(read_only=True)
+    user_image = serializers.SerializerMethodField(read_only=True)
     images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=False)
     image_urls = PostImageSerializer(source='images', many=True, read_only=True)  
     comments = serializers.SerializerMethodField(read_only=True)
@@ -95,7 +103,7 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'content', 'author',
+            'id', 'title', 'content', 'author','user_image',
             'category', 'category_id',
             'tags', 'tag_ids',
             'created_at', 'target_amount',
@@ -105,12 +113,21 @@ class PostSerializer(serializers.ModelSerializer):
             'current_amount', 'funding_percentage', 'average_rating',
         ]
         read_only_fields = [
-            'id', 'author', 'created_at',
+            'id', 'author', 'created_at','user_image',
             'category', 'tags',
             'image_urls',
             'comments', 'donations',
             'current_amount', 'funding_percentage', 'average_rating',
         ]
+
+    def get_user_image(self, obj):
+        request = self.context.get('request')
+        if obj.author and obj.author.profile_picture:
+            image_url = obj.author.profile_picture.url
+            if request is not None:
+                return request.build_absolute_uri(image_url)
+            return image_url
+        return None
 
     def get_comments(self, obj):
         top_level = obj.comments.filter(parent__isnull=True).order_by('created_at')
