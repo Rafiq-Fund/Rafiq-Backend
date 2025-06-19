@@ -2,9 +2,10 @@ from decimal import Decimal
 from django.utils import timezone
 from rest_framework import serializers
 from .models import Post, PostImage, Donation, Comment, Category, Tag, Rating
+from account.serializers import UserProfileSerializer
 
 class CommentSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True)
+    user = UserProfileSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
 
     class Meta:
