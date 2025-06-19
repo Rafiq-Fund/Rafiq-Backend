@@ -67,7 +67,7 @@ def generate_password_reset_jwt(user):
     return token
 
 def send_password_reset_email(user, request):
-    token = generate_activation_jwt(user)
+    token = generate_password_reset_jwt(user)
     
     # Build reset URL with token for security
     current_site = get_current_site(request)
